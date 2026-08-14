@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#19150f">
+    <title>和弦組成音練習器</title>
+    <style>:root {
+  color-scheme: dark;
+  --ink: #19150f;
+  --ink-soft: #252018;
+  --paper: #f3ead6;
+  --paper-muted: #d9cdb6;
+  --line: #b89f75;
+  --wood: #3a2417;
+  --wood-deep: #20140e;
+  --amber: #f0b950;
+  --amber-hot: #ffdc7c;
+  --mint: #b8d7c3;
+  --danger: #f58a78;
+  --success: #a8d6a4;
+  --focus: #fff4bf;
+  --shadow: 0 20px 45px rgb(0 0 0 / 0.24);
+  font-family: Georgia, 'Noto Serif TC', 'PMingLiU', serif;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: var(--paper);
+  background:
+    radial-gradient(circle at 14% 8%, rgb(255 218 136 / 0.14), transparent 27rem),
+    repeating-linear-gradient(105deg, rgb(255 255 255 / 0.018) 0 1px, transparent 1px 8px),
+    linear-gradient(135deg, #17120e, #2a1910 54%, #120f0c);
+}
+button, select { font: inherit; }
+button { cursor: pointer; }
+button:focus-visible, select:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.app-shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 52px; }
+.masthead { display: flex; justify-content: space-between; gap: 20px; align-items: end; margin-bottom: 26px; }
+.eyebrow { margin: 0 0 8px; color: var(--amber); font: 700 0.76rem/1.2 ui-monospace, Consolas, monospace; letter-spacing: 0.16em; }
+h1, h2, h3, p { margin-top: 0; }
+h1 { margin-bottom: 5px; font-size: clamp(2rem, 6vw, 3.7rem); line-height: 0.95; letter-spacing: -0.04em; }
+h2 { margin-bottom: 10px; color: var(--ink); font-size: clamp(1.45rem, 3vw, 2rem); }
+h3 { margin-bottom: 8px; font-size: 1rem; }
+.subhead, .muted { color: var(--paper-muted); }
+.subhead { margin: 0; max-width: 36rem; line-height: 1.55; }
+
+.paper-panel { color: var(--ink); background: var(--paper); border: 1px solid rgb(255 255 255 / 0.45); box-shadow: var(--shadow); }
+.setup { padding: clamp(20px, 4vw, 42px); position: relative; overflow: clip; }
+.setup::after { content: ''; position: absolute; inset: auto -90px -170px auto; width: 360px; height: 360px; border: 1px solid rgb(100 64 30 / 0.16); border-radius: 50%; pointer-events: none; }
+.setup-intro { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(250px, 0.9fr); gap: 24px; align-items: end; padding-bottom: 24px; border-bottom: 2px solid #a87b45; }
+.setup-intro h2 { max-width: 17em; margin-bottom: 0; }
+.setup-intro .setup-copy { margin: 0; padding: 12px 0 12px 18px; border-left: 3px solid #c58943; }
+.setup-layout { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(218px, 0.54fr) minmax(0, 1.46fr); gap: 24px; align-items: start; padding-top: 24px; }
+.setup-controls { position: sticky; top: 16px; display: grid; gap: 12px; }
+.control-card { padding: 17px; border: 1px solid #c5af88; background: #e8dcc5; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.36); }
+.control-number { margin: 0 0 7px; color: #a0642b; font: 700 0.73rem/1 ui-monospace, Consolas, monospace; letter-spacing: 0.14em; }
+.control-card h3 { margin: 0 0 12px; color: #513116; font-size: 1.05rem; }
+.setup-copy { color: #5d4935; line-height: 1.7; }
+.field-label { display: block; margin-bottom: 8px; color: #614929; font-weight: 700; }
+.segment { display: grid; gap: 7px; }
+.segment label { position: relative; }
+.segment input { position: absolute; opacity: 0; pointer-events: none; }
+.segment span { display: block; padding: 9px 11px; border: 1px solid #bba982; background: #fff8e9; color: #4e3925; transition: 140ms ease; }
+.segment input:checked + span { border-color: #5d3719; color: #fff5dc; background: #5d3719; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25); }
+.time-select { width: 100%; padding: 11px 12px; border: 1px solid #bba982; color: #3f2f20; background: #fff8e9; }
+
+.chord-selector { min-width: 0; }
+.type-header { display: flex; align-items: end; justify-content: space-between; gap: 16px; padding: 0 2px; }
+.type-header .field-label { margin-bottom: 6px; font-size: 1.05rem; }
+.type-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 7px; }
+.text-button { padding: 6px 9px; border: 1px solid #a77d50; color: #65401e; background: #fff8e9; font-size: 0.8rem; }
+.text-button:hover { color: #fff9e8; background: #65401e; }
+.type-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 15px; }
+.type-section { min-width: 0; padding: 15px; border: 1px solid #c7b18a; background: rgb(255 250 240 / 0.62); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.42); }
+.section-basic { grid-column: 1 / -1; }
+.type-section-head { display: flex; justify-content: space-between; align-items: start; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #cfbd9e; }
+.section-index { margin: 0 0 4px; color: #b16f31; font: 700 0.68rem/1 ui-monospace, Consolas, monospace; letter-spacing: 0.12em; }
+.type-section h3 { margin: 0; color: #4e2f16; font-size: 1.08rem; }
+.type-count { display: inline-block; padding: 4px 6px; color: #795126; background: #ead6af; font: 700 0.7rem/1 ui-monospace, Consolas, monospace; white-space: nowrap; }
+.section-groups { display: grid; gap: 11px; margin-top: 12px; }
+.section-basic .section-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
+.type-group { min-width: 0; }
+.type-group + .type-group { padding-top: 10px; border-top: 1px dotted #bba982; }
+.section-basic .type-group:nth-child(2) { padding-top: 0; border-top: 0; }
+.type-group h4 { margin: 0 0 7px; color: #684b2d; font-size: 0.88rem; }
+.type-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.type-list label { position: relative; }
+.type-list input { position: absolute; opacity: 0; }
+.type-list span { display: grid; gap: 3px; min-width: 78px; padding: 7px 8px; border: 1px solid #c7b894; color: #563e2a; background: #fffaf0; transition: 140ms ease; }
+.type-list b { font: 700 0.79rem/1.1 ui-monospace, Consolas, monospace; }
+.type-list small { font: 600 0.68rem/1.2 Georgia, 'Noto Serif TC', 'PMingLiU', serif; }
+.type-list input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+.type-list input:checked + span { border-color: #7d4a21; color: #fff7e7; background: #8f592a; box-shadow: 0 3px 0 #b17a3e; transform: translateY(-1px); }
+.setup-footer { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-top: 24px; padding-top: 18px; border-top: 2px solid #a87b45; }
+.error-note { min-height: 1.3em; margin: 0 0 5px; color: #9f2c25; font-weight: 700; }
+.selection-summary { display: flex; gap: 7px; align-items: baseline; margin: 0; color: #684b2d; font-size: 0.92rem; }
+.selection-summary strong { color: #4d2710; font: 800 1.7rem/1 ui-monospace, Consolas, monospace; }
+.selection-summary.is-empty { color: #9f2c25; }
+.setup-footer-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 9px; }
+.primary-button, .secondary-button, .icon-button { border: 1px solid transparent; transition: transform 140ms ease, box-shadow 140ms ease; }
+.primary-button:hover, .secondary-button:hover, .icon-button:hover { transform: translateY(-1px); }
+.primary-button { padding: 13px 20px; border-color: #3b2110; color: #fff8e8; background: linear-gradient(135deg, #5c3218, #2e180d); box-shadow: 0 7px 0 #c99850; font-weight: 700; }
+.primary-button:active { transform: translateY(4px); box-shadow: 0 3px 0 #c99850; }
+.secondary-button { padding: 10px 13px; border-color: #7a5c37; color: #f6e8ce; background: #3a2515; }
+.icon-button { padding: 9px 11px; border-color: #7b6346; color: #f6e8ce; background: rgb(255 255 255 / 0.07); }
+.setup > .fretboard-panel { margin-top: 24px; }
+
+.practice-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }
+.timer { min-width: 104px; padding: 8px 12px; border: 1px solid #82633d; color: var(--amber-hot); background: rgb(0 0 0 / 0.22); font: 700 1.12rem/1 ui-monospace, Consolas, monospace; text-align: center; }
+.timer.danger { color: #ffab94; border-color: #f58a78; }
+.question-card { overflow: hidden; }
+.question-strip { display: flex; justify-content: space-between; gap: 15px; align-items: center; padding: 14px clamp(18px, 4vw, 34px); color: #f7dd9d; background: linear-gradient(100deg, #2f1c12, #57331c); }
+.mode-badge { padding: 5px 8px; border: 1px solid rgb(255 255 255 / 0.27); color: #fff2cb; font-size: 0.82rem; }
+.question-body { padding: clamp(22px, 5vw, 54px); }
+.prompt { margin: 0 0 10px; color: #674d31; font-weight: 700; }
+.chord-symbol { margin: 0 0 28px; font: 800 clamp(2.8rem, 12vw, 7rem)/0.9 Georgia, 'Times New Roman', serif; letter-spacing: -0.08em; }
+.tone-set { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 27px; }
+.tone-chip { padding: 8px 11px; border: 1px solid #b7965c; border-radius: 999px; color: #332416; background: #fffaf0; font: 700 1.12rem/1 ui-monospace, Consolas, monospace; }
+
+.answer-grid-wrap { overflow-x: auto; padding: 4px 4px 10px; }
+.answer-grid { display: grid; grid-template-columns: 80px repeat(var(--columns), minmax(84px, 1fr)); min-width: calc(80px + var(--columns) * 84px); border: 1px solid #aa8e62; background: #d9c9aa; }
+.grid-label, .degree-head { min-height: 42px; border-right: 1px solid #aa8e62; border-bottom: 1px solid #aa8e62; }
+.grid-label { display: grid; place-items: center; padding: 6px; color: #725535; background: #e5d9c0; font-size: 0.83rem; font-weight: 700; }
+.degree-head { display: grid; place-items: center; color: #573a20; background: #f7eedc; font: 700 1rem/1 ui-monospace, Consolas, monospace; }
+.note-slot { display: grid; grid-template-rows: 23px 52px 23px; min-height: 98px; border-right: 1px solid #aa8e62; background: #fffaf0; }
+.grid-cell { border: 0; color: #302010; background: #fffaf0; font: 800 1.32rem/1 ui-monospace, Consolas, monospace; }
+.alter-button { border: 0; color: #795126; background: #eee0c5; font: 800 0.76rem/1 ui-monospace, Consolas, monospace; transition: color 140ms ease, background 140ms ease; }
+.alter-button.sharp { border-bottom: 1px solid #cfbd9e; }
+.alter-button.flat { border-top: 1px solid #cfbd9e; }
+.alter-button:hover { color: #fff8e8; background: #795126; }
+.grid-cell.is-active { position: relative; z-index: 1; color: #39200c; background: #ffe4a0; box-shadow: inset 0 0 0 4px #724011; }
+.grid-cell.is-active::after { content: '游標'; position: absolute; top: 4px; right: 5px; color: #704214; font: 700 0.58rem/1 sans-serif; letter-spacing: 0.03em; }
+.input-hint { margin: 11px 0 0; color: #725b42; font-size: 0.88rem; line-height: 1.55; }
+.reverse-select { display: grid; gap: 8px; max-width: 480px; margin-top: 20px; }
+.reverse-select select { padding: 11px; border: 1px solid #aa8e62; color: #3f2c1c; background: #fffaf0; }
+.note-controls { display: grid; gap: 7px; margin-top: 16px; padding: 12px; border: 1px dashed #ad8e62; background: #f4e9d4; }
+.note-control-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.note-control-row > span { width: 34px; color: #725535; font-size: 0.76rem; font-weight: 700; }
+.key-button { min-width: 39px; min-height: 38px; border: 1px solid #a98b60; color: #472d17; background: #fffaf0; font: 700 1rem/1 ui-monospace, Consolas, monospace; }
+.key-button:hover { color: #fff8e8; background: #6d4120; }
+.key-button.wide { min-width: 58px; }
+.submit-row { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-top: 25px; }
+.submit-message { margin: 0; color: #8f362d; font-weight: 700; }
+
+.feedback { margin-top: 22px; padding: 19px; border-left: 5px solid var(--success); color: #1e2b1e; background: #e7f1dc; }
+.feedback.wrong { border-left-color: var(--danger); background: #fae4da; }
+.feedback-title { margin: 0 0 10px; font-size: 1.15rem; }
+.correction-list { display: grid; gap: 6px; margin: 0 0 17px; padding: 0; list-style: none; }
+.correction-list li { display: grid; grid-template-columns: 62px 1fr 1fr; gap: 8px; align-items: baseline; font-family: ui-monospace, Consolas, monospace; }
+.correction-list .right { color: #1e652d; }
+.correction-list .wrong { color: #ab332c; text-decoration: line-through; }
+.formula-strip { display: flex; flex-wrap: wrap; gap: 7px 11px; align-items: baseline; margin: 14px 0 17px; padding: 11px 12px; border: 1px solid #b8a47e; color: #4b321c; background: rgb(255 250 240 / 0.6); }
+.formula-strip span { color: #765534; font-size: 0.78rem; font-weight: 700; }
+.formula-strip strong { font: 800 1.02rem/1.2 ui-monospace, Consolas, monospace; }
+.formula-strip em { color: #765534; font-size: 0.82rem; font-style: normal; }
+.feedback-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+
+.summary-panel { padding: clamp(22px, 5vw, 48px); }
+.summary-heading { padding-bottom: 20px; border-bottom: 2px solid #a87b45; }
+.summary-heading h2 { margin-bottom: 7px; }
+.summary-heading > p:last-child { margin: 0; color: #5d4935; }
+.scoreboard { display: flex; gap: clamp(22px, 5vw, 54px); align-items: center; margin: 24px 0; padding: 20px; border: 1px solid #b69463; color: #3f2714; background: #ead8b5; }
+.accuracy-score { display: grid; gap: 4px; min-width: 126px; }
+.accuracy-score strong { font: 800 clamp(2.5rem, 7vw, 4.3rem)/0.85 ui-monospace, Consolas, monospace; letter-spacing: -0.08em; }
+.accuracy-score span { color: #73502b; font-size: 0.82rem; font-weight: 700; }
+.score-count { display: grid; gap: 9px; padding-left: 22px; border-left: 1px solid #b69463; color: #63411f; }
+.score-count span { display: flex; gap: 8px; align-items: baseline; }
+.score-count b { color: #35200e; font: 800 1.35rem/1 ui-monospace, Consolas, monospace; }
+.mistake-list { border-top: 1px solid #b8a47e; }
+.mistake-list-head { display: flex; justify-content: space-between; align-items: baseline; gap: 15px; padding: 18px 0 11px; }
+.mistake-list-head h3 { margin: 0; color: #513116; }
+.mistake-list-head span, .mistake-index { color: #87572b; font: 700 0.76rem/1 ui-monospace, Consolas, monospace; }
+.mistake-card { display: grid; grid-template-columns: minmax(120px, 0.5fr) minmax(0, 1.5fr); gap: 16px; padding: 16px; border: 1px solid #d2b996; background: #fff8e9; }
+.mistake-card + .mistake-card { margin-top: 9px; }
+.mistake-card h3 { margin: 4px 0; color: #4b2a12; font: 800 1.55rem/1 Georgia, 'Times New Roman', serif; }
+.mistake-card p { margin: 0; color: #6a4b2d; }
+.mistake-detail { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 4px 0; font: 700 0.92rem/1.45 ui-monospace, Consolas, monospace; }
+.mistake-detail span { color: #87572b; font: 700 0.74rem/1.6 Georgia, 'Noto Serif TC', 'PMingLiU', serif; }
+.no-mistakes { margin: 0; padding: 21px 0; color: #376a3d; font-weight: 700; }
+.summary-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 9px; margin-top: 24px; }
+
+.fretboard-panel { margin-top: 22px; padding: 20px; color: #f6e8ce; background: linear-gradient(140deg, #2e190e, #5b321b 50%, #201008); box-shadow: var(--shadow); }
+.fretboard-title { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.fretboard-title h2 { color: #ffe6a5; }
+.fretboard-title p { color: #ddc49b; font-size: 0.88rem; }
+.fretboard-scroll { overflow-x: auto; padding-bottom: 6px; }
+.fretboard { width: 100%; min-width: 640px; border: 1px solid #bd8449; background: #472514; box-shadow: inset 0 0 34px rgb(0 0 0 / 0.28); }
+.fret-row { position: relative; display: grid; grid-template-columns: 44px repeat(12, minmax(0, 1fr)); min-height: 54px; }
+.fret-row::after { content: ''; position: absolute; z-index: 0; top: 50%; right: 0; left: 44px; height: var(--string-width); transform: translateY(-50%); background: linear-gradient(90deg, #f4d48d, #bf8245 72%, #f4d48d); box-shadow: 0 1px 1px rgb(0 0 0 / 0.55); pointer-events: none; }
+.fret-string { display: grid; place-items: center; color: #ffdf98; background: rgb(16 7 2 / 0.5); font: 700 0.75rem/1 ui-monospace, Consolas, monospace; }
+.fret-cell { position: relative; z-index: 1; display: grid; place-items: center; border-left: 1px solid rgb(255 234 183 / 0.35); color: #f2ddbc; font: 700 0.82rem/1 ui-monospace, Consolas, monospace; text-align: center; }
+.fret-note { position: relative; z-index: 2; padding: 2px 4px; border-radius: 3px; color: #f5e0ba; background: rgb(55 29 16 / 0.74); }
+.target-dot { position: absolute; z-index: 3; top: 6px; right: 6px; width: 13px; height: 13px; border: 2px solid #fff1ba; border-radius: 50%; background: #f5c866; box-shadow: 0 1px 4px rgb(0 0 0 / 0.7); }
+.fret-numbers { display: grid; grid-template-columns: 44px repeat(12, minmax(0, 1fr)); min-width: 640px; margin-top: 6px; color: #edcf9a; font: 700 0.73rem/1 ui-monospace, Consolas, monospace; text-align: center; }
+.fret-numbers span:first-child { visibility: hidden; }
+
+@media (max-width: 900px) {
+  .setup-layout { grid-template-columns: 1fr; }
+  .setup-controls { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .app-shell { width: min(100% - 22px, 680px); padding-top: 18px; }
+  .masthead { align-items: start; flex-direction: column; margin-bottom: 18px; }
+  .setup { padding: 22px 18px; }
+  .setup-intro { grid-template-columns: 1fr; gap: 12px; padding-bottom: 19px; }
+  .setup-intro .setup-copy { padding: 10px 0 0 13px; }
+  .setup-layout { gap: 18px; padding-top: 18px; }
+  .setup-controls { grid-template-columns: 1fr; gap: 9px; }
+  .control-card { padding: 15px; }
+  .type-header { align-items: start; flex-direction: column; }
+  .type-actions { justify-content: start; }
+  .type-groups { grid-template-columns: 1fr; gap: 11px; }
+  .section-basic { grid-column: auto; }
+  .section-basic .section-groups { grid-template-columns: 1fr; }
+  .section-basic .type-group:nth-child(2) { padding-top: 10px; border-top: 1px dotted #bba982; }
+  .type-section { padding: 13px; }
+  .setup-footer { align-items: stretch; flex-direction: column; gap: 13px; margin-top: 19px; }
+  .setup-footer-actions { justify-content: stretch; }
+  .setup-footer-actions .primary-button, .setup-footer-actions .secondary-button { flex: 1 1 150px; }
+  .practice-top { align-items: stretch; }
+  .question-body { padding: 22px 16px 27px; }
+  .question-strip { padding: 12px 16px; }
+  .chord-symbol { margin-bottom: 22px; }
+  .grid-cell.is-active::after { display: none; }
+  .input-hint { display: none; }
+  .note-controls { padding: 11px; }
+  .submit-row { align-items: stretch; flex-direction: column; }
+  .submit-row .primary-button { width: 100%; }
+  .correction-list li { grid-template-columns: 48px 1fr; }
+  .correction-list li span:last-child { grid-column: 2; }
+  .formula-strip { align-items: start; flex-direction: column; gap: 5px; }
+  .scoreboard { align-items: start; flex-direction: column; gap: 20px; padding: 17px; }
+  .score-count { width: 100%; padding: 14px 0 0; border-top: 1px solid #b69463; border-left: 0; }
+  .mistake-card { grid-template-columns: 1fr; gap: 11px; }
+  .summary-actions { justify-content: stretch; }
+  .summary-actions .primary-button, .summary-actions .secondary-button { flex: 1 1 150px; }
+  .fretboard-panel { padding: 16px; margin-inline: -1px; }
+}
+</style>
+  </head>
+  <body>
+    <main id="app" data-app-root></main>
+    <script type="module">const LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+const NATURAL_PITCH = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+const PITCH_LABELS = ['C', 'C#/Db', 'D', 'D#/Eb', 'E', 'F', 'F#/Gb', 'G', 'G#/Ab', 'A', 'A#/Bb', 'B'];
+const STRING_PITCHES = [4, 9, 2, 7, 11, 4];
+const STRING_NAMES = ['E', 'A', 'D', 'G', 'B', 'E'];
+
+const FRETBOARD_TAB_ORDER = [5, 4, 3, 2, 1, 0];
+
+const TEMPLATE = (id, label, category, degrees) => ({ id, label, category, degrees });
+
+const CHORD_TEMPLATES = [
+  TEMPLATE('maj', '大三和弦', '基本和弦｜三和弦', ['1', '3', '5']),
+  TEMPLATE('min', '小三和弦', '基本和弦｜三和弦', ['1', 'b3', '5']),
+  TEMPLATE('aug', '增和弦', '基本和弦｜三和弦', ['1', '3', '#5']),
+  TEMPLATE('dim', '減和弦', '基本和弦｜三和弦', ['1', 'b3', 'b5']),
+
+  TEMPLATE('maj7', '大七和弦', '基本和弦｜七和弦', ['1', '3', '5', '7']),
+  TEMPLATE('min7', '小七和弦', '基本和弦｜七和弦', ['1', 'b3', '5', 'b7']),
+  TEMPLATE('7', '屬七和弦', '基本和弦｜七和弦', ['1', '3', '5', 'b7']),
+  TEMPLATE('dim7', '減七和弦', '基本和弦｜七和弦', ['1', 'b3', 'b5', 'bb7']),
+  TEMPLATE('m7b5', '半減和弦', '基本和弦｜七和弦', ['1', 'b3', 'b5', 'b7']),
+  TEMPLATE('minMaj7', '小調大七和弦', '基本和弦｜七和弦', ['1', 'b3', '5', '7']),
+  TEMPLATE('augMaj7', '大七升五和弦', '基本和弦｜七和弦', ['1', '3', '#5', '7']),
+
+  TEMPLATE('6', '大六和弦', '基本和弦｜六和弦', ['1', '3', '5', '6']),
+  TEMPLATE('m6', '小六和弦', '基本和弦｜六和弦', ['1', 'b3', '5', '6']),
+  TEMPLATE('add9', '大調加九和弦', '基本和弦｜加九和弦', ['1', '3', '5', '9']),
+  TEMPLATE('madd9', '小調加九和弦', '基本和弦｜加九和弦', ['1', 'b3', '5', '9']),
+  TEMPLATE('sus2', '掛留二和弦', '基本和弦｜掛留和弦', ['1', '2', '5']),
+  TEMPLATE('sus4', '掛留四和弦', '基本和弦｜掛留和弦', ['1', '4', '5']),
+  TEMPLATE('7sus4', '屬七掛留四和弦', '基本和弦｜掛留和弦', ['1', '4', '5', 'b7']),
+  TEMPLATE('69', '大調六九和弦', '基本和弦｜六九和弦', ['1', '3', '5', '6', '9']),
+  TEMPLATE('m69', '小調六九和弦', '基本和弦｜六九和弦', ['1', 'b3', '5', '6', '9']),
+
+  TEMPLATE('maj9', '大九和弦', '延伸和弦｜九和弦', ['1', '3', '5', '7', '9']),
+  TEMPLATE('min9', '小九和弦', '延伸和弦｜九和弦', ['1', 'b3', '5', 'b7', '9']),
+  TEMPLATE('9', '屬九和弦', '延伸和弦｜九和弦', ['1', '3', '5', 'b7', '9']),
+  TEMPLATE('maj11', '大十一和弦', '延伸和弦｜十一和弦', ['1', '3', '5', '7', '9', '11']),
+  TEMPLATE('min11', '小十一和弦', '延伸和弦｜十一和弦', ['1', 'b3', '5', 'b7', '9', '11']),
+  TEMPLATE('11', '屬十一和弦', '延伸和弦｜十一和弦', ['1', '3', '5', 'b7', '9', '11']),
+  TEMPLATE('maj13', '大十三和弦', '延伸和弦｜十三和弦', ['1', '3', '5', '7', '9', '11', '13']),
+  TEMPLATE('min13', '小十三和弦', '延伸和弦｜十三和弦', ['1', 'b3', '5', 'b7', '9', '11', '13']),
+  TEMPLATE('13', '屬十三和弦', '延伸和弦｜十三和弦', ['1', '3', '5', 'b7', '9', '11', '13']),
+
+  TEMPLATE('7s9', '七加九和弦', '變化和弦', ['1', '3', '5', 'b7', '#9']),
+  TEMPLATE('7b9', '七減九和弦', '變化和弦', ['1', '3', '5', 'b7', 'b9']),
+  TEMPLATE('7b5s9', '七加九減五和弦', '變化和弦', ['1', '3', 'b5', 'b7', '#9']),
+  TEMPLATE('7s5b9', '七減九加五和弦', '變化和弦', ['1', '3', '#5', 'b7', 'b9']),
+  TEMPLATE('9s5', '九加五和弦', '變化和弦', ['1', '3', '#5', 'b7', '9']),
+  TEMPLATE('9b5', '九減五和弦', '變化和弦', ['1', '3', 'b5', 'b7', '9']),
+  TEMPLATE('7s5', '七加五和弦', '變化和弦', ['1', '3', '#5', 'b7']),
+  TEMPLATE('m7s5', '小調七加五和弦', '變化和弦', ['1', 'b3', '#5', 'b7']),
+  TEMPLATE('7b5', '七減五和弦', '變化和弦', ['1', '3', 'b5', 'b7']),
+];
+
+const BASIC_TEMPLATE_IDS = [
+  'maj', 'min', 'aug', 'dim',
+  'maj7', 'min7', '7', 'dim7', 'm7b5', 'minMaj7', 'augMaj7',
+  '6', 'm6', 'add9', 'madd9', 'sus2', 'sus4', '7sus4', '69', 'm69',
+];
+
+const TEMPLATE_BY_ID = new Map(CHORD_TEMPLATES.map((template) => [template.id, template]));
+const SYMBOLS = {
+  maj: '', min: 'm', aug: 'aug', dim: 'dim',
+  maj7: 'maj7', min7: 'm7', 7: '7', dim7: 'dim7', m7b5: 'm7-5', minMaj7: 'mMaj7', augMaj7: 'maj7+5',
+  6: '6', m6: 'm6', add9: 'add9', madd9: 'madd9', sus2: 'sus2', sus4: 'sus4', '7sus4': '7sus4', 69: '6/9', m69: 'm6/9',
+  maj9: 'maj9', 9: '9', min9: 'm9', maj11: 'maj11', 11: '11', min11: 'm11',
+  maj13: 'maj13', 13: '13', min13: 'm13',
+  '7s9': '7+9', '7b9': '7-9', '7b5s9': '7+9-5', '7s5b9': '7-9+5',
+  '9s5': '9+5', '9b5': '9-5', '7s5': '7+5', 'm7s5': 'm7+5', '7b5': '7-5',
+};
+
+const DEGREE_SPECS = {
+  1: [0, 0], 2: [2, 1], 3: [4, 2], 4: [5, 3], 5: [7, 4], 6: [9, 5], 7: [11, 6],
+  9: [14, 8], 11: [17, 10], 13: [21, 12],
+};
+
+const ROOTS = LETTERS.flatMap((letter) => [letter, `${letter}#`, `${letter}b`]);
+
+function templateSymbol(templateId) {
+  if (!TEMPLATE_BY_ID.has(templateId)) throw new Error(`找不到和弦類型：${templateId}`);
+  return templateId === 'maj' ? 'maj' : SYMBOLS[templateId];
+}
+
+const modulo = (value, divisor) => ((value % divisor) + divisor) % divisor;
+
+function parseNote(name) {
+  const match = /^([A-G])((?:#|b){0,3})$/.exec(name ?? '');
+  if (!match || /#.*b|b.*#/.test(match[2])) throw new Error(`無法辨識音名：${name}`);
+  const accidental = [...match[2]].reduce((sum, symbol) => sum + (symbol === '#' ? 1 : -1), 0);
+  return {
+    letter: match[1],
+    accidental,
+    name: `${match[1]}${match[2]}`,
+    pitchClass: modulo(NATURAL_PITCH[match[1]] + accidental, 12),
+  };
+}
+
+function degreeSpec(token) {
+  const match = /^(bb|b|#)?(1|2|3|4|5|6|7|9|11|13)$/.exec(token);
+  if (!match) throw new Error(`無法辨識音程度數：${token}`);
+  const [semitones, letterSteps] = DEGREE_SPECS[match[2]];
+  const alteration = match[1] === 'bb' ? -2 : match[1] === 'b' ? -1 : match[1] === '#' ? 1 : 0;
+  return { degree: token, semitones: semitones + alteration, letterSteps };
+}
+
+function accidentalName(value) {
+  return value > 0 ? '#'.repeat(value) : 'b'.repeat(Math.abs(value));
+}
+
+function spellTone(root, token) {
+  const rootNote = parseNote(root);
+  const spec = degreeSpec(token);
+  const letter = LETTERS[modulo(LETTERS.indexOf(rootNote.letter) + spec.letterSteps, LETTERS.length)];
+  const pitchClass = modulo(rootNote.pitchClass + spec.semitones, 12);
+  let accidental = pitchClass - NATURAL_PITCH[letter];
+  while (accidental > 6) accidental -= 12;
+  while (accidental < -6) accidental += 12;
+  return { degree: token, letter, accidental, name: `${letter}${accidentalName(accidental)}`, pitchClass };
+}
+
+function buildChord(root, templateId) {
+  const template = TEMPLATE_BY_ID.get(templateId);
+  if (!template) throw new Error(`找不到和弦類型：${templateId}`);
+  parseNote(root);
+  return {
+    root,
+    template,
+    symbol: `${root}${SYMBOLS[templateId]}`,
+    tones: template.degrees.map((degree) => spellTone(root, degree)),
+  };
+}
+
+function gradeNotes(expected, actual) {
+  const actualNames = actual.map((value) => typeof value === 'string' ? value : `${value.letter}${accidentalName(value.accidental ?? 0)}`);
+  const entries = expected.map((tone, index) => ({
+    degree: tone.degree,
+    expected: tone.name,
+    actual: actualNames[index] ?? '',
+    correct: tone.name === actualNames[index],
+  }));
+  return { correct: entries.length === actualNames.length && entries.every((entry) => entry.correct), entries };
+}
+
+function fretboardCells(chordNotes) {
+  const targets = new Map(chordNotes.map((tone) => [tone.pitchClass, tone]));
+  return STRING_PITCHES.flatMap((openPitch, stringIndex) => Array.from({ length: 12 }, (_, index) => {
+    const fret = index + 1;
+    const pitchClass = modulo(openPitch + fret, 12);
+    const targetTone = targets.get(pitchClass) ?? null;
+    return {
+      stringIndex,
+      stringName: STRING_NAMES[stringIndex],
+      fret,
+      pitchClass,
+      displayName: PITCH_LABELS[pitchClass],
+      naturalName: PITCH_LABELS[pitchClass].includes('/') ? '' : PITCH_LABELS[pitchClass],
+      targetTone,
+      degree: targetTone?.degree ?? null,
+    };
+  }));
+}
+
+function randomQuestion(options = {}, previousKey = '', random = Math.random) {
+  const rootNames = options.rootNames ?? ROOTS;
+  const templateIds = options.templateIds ?? CHORD_TEMPLATES.map((template) => template.id);
+  const candidates = rootNames.flatMap((root) => templateIds.map((templateId) => {
+    const chord = buildChord(root, templateId);
+    return { ...chord, key: `${root}:${templateId}`, templateId };
+  })).filter((candidate) => candidate.tones.every((tone) => Math.abs(tone.accidental) <= 1));
+  if (!candidates.length) throw new Error('目前設定沒有可出題的和弦');
+  const available = candidates.filter((candidate) => candidate.key !== previousKey);
+  const pool = available.length ? available : candidates;
+  const index = Math.min(pool.length - 1, Math.floor(Math.max(0, random()) * pool.length));
+  return pool[index];
+}
+
+
+const INPUT_LETTERS = new Set(['C', 'D', 'E', 'F', 'G', 'A', 'B']);
+
+function createAnswerGrid(count) {
+  return Array.from({ length: count }, () => ({ letter: '', accidental: 0 }));
+}
+
+function moveFocus(focus, key, count) {
+  const column = Math.min(Math.max(focus.column, 0), Math.max(count - 1, 0));
+  if (key === 'ArrowLeft') return { column: Math.max(column - 1, 0) };
+  if (key === 'ArrowRight') return { column: Math.min(column + 1, Math.max(count - 1, 0)) };
+  return { column };
+}
+
+function applyAnswerKey(grid, column, key) {
+  const next = grid.map((entry) => ({ ...entry }));
+  const currentColumn = Math.min(Math.max(column, 0), Math.max(next.length - 1, 0));
+  const entry = next[currentColumn];
+  if (!entry) return { grid: next, column: currentColumn };
+  const upper = key.toUpperCase();
+  if (INPUT_LETTERS.has(upper)) {
+    const targetColumn = entry.letter ? Math.min(currentColumn + 1, next.length - 1) : currentColumn;
+    next[targetColumn].letter = upper;
+    next[targetColumn].accidental = 0;
+    return { grid: next, column: targetColumn };
+  }
+  if (entry.letter) {
+    if (key === '+' || key === '#') entry.accidental = entry.accidental === 1 ? 0 : 1;
+    if (key === '-' || key === 'b') entry.accidental = entry.accidental === -1 ? 0 : -1;
+    if (key === 'Delete' || key === 'Backspace' || key.toLowerCase() === 'n') entry.accidental = 0;
+  }
+  return { grid: next, column: currentColumn };
+}
+
+function notesFromGrid(grid) {
+  return grid.map(({ letter, accidental }) => {
+    if (!letter) return '';
+    return `${letter}${accidental > 0 ? '#'.repeat(accidental) : 'b'.repeat(Math.abs(accidental))}`;
+  });
+}
+
+
+function createPracticeSession(total) {
+  const count = Number(total);
+  if (!Number.isInteger(count) || count < 1) throw new Error('答題數必須至少為 1');
+  return { total: count, completed: 0, mistakes: [] };
+}
+
+function recordQuestionResult(session, question, correct) {
+  const mistake = correct ? [] : [{
+    symbol: question.symbol,
+    label: question.template.label,
+    formula: [...question.template.degrees],
+    tones: question.tones.map((tone) => tone.name),
+  }];
+  return {
+    ...session,
+    completed: session.completed + 1,
+    mistakes: [...session.mistakes, ...mistake],
+  };
+}
+
+function isSessionComplete(session) {
+  return session.completed >= session.total;
+}
+
+function sessionScore(session) {
+  const wrong = session.mistakes.length;
+  const correct = session.completed - wrong;
+  return {
+    correct,
+    wrong,
+    accuracy: session.completed ? Math.round((correct / session.completed) * 100) : 0,
+  };
+}
+
+
+
+const app = document.querySelector('[data-app-root]');
+const allTemplateIds = CHORD_TEMPLATES.map((template) => template.id);
+const typeGroupSpecs = [
+  {
+    section: '基本和弦',
+    groups: [
+      { category: '三和弦', ids: ['maj', 'min', 'aug', 'dim'] },
+      { category: '七和弦', ids: ['maj7', 'min7', '7', 'dim7', 'm7b5', 'minMaj7', 'augMaj7'] },
+      { category: '六和弦', ids: ['6', 'm6'] },
+      { category: '加九和弦', ids: ['add9', 'madd9'] },
+      { category: '掛留和弦', ids: ['sus2', 'sus4', '7sus4'] },
+      { category: '六九和弦', ids: ['69', 'm69'] },
+    ],
+  },
+  {
+    section: '延伸和弦',
+    groups: [
+      { category: '九和弦', ids: ['maj9', 'min9', '9'] },
+      { category: '十一和弦', ids: ['maj11', 'min11', '11'] },
+      { category: '十三和弦', ids: ['maj13', 'min13', '13'] },
+    ],
+  },
+  {
+    section: '變化和弦',
+    groups: [
+      { category: '變化和弦', ids: ['7s9', '7b9', '7b5s9', '7s5b9', '9s5', '9b5', '7s5', 'm7s5', '7b5'] },
+    ],
+  },
+];
+const state = {
+  view: 'setup',
+  config: { mode: 'mixed', duration: 0, questionCount: 10, templateIds: [...BASIC_TEMPLATE_IDS] },
+  session: null,
+  question: null,
+  previousKey: '',
+  direction: 'forward',
+  answerGrid: [],
+  rootGrid: [],
+  reverseTemplateId: '',
+  focus: { column: 0 },
+  focusGrid: 'answer',
+  feedback: null,
+  fretboardOpen: false,
+  setupFretboardOpen: false,
+  timerId: null,
+  deadline: null,
+  setupError: '',
+};
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character]));
+}
+
+function chordGroups() {
+  return typeGroupSpecs.map(({ section, groups }) => ({
+    section,
+    groups: groups.map(({ category, ids }) => ({
+      category,
+      templates: ids.map((id) => CHORD_TEMPLATES.find((template) => template.id === id)),
+    })),
+  }));
+}
+
+function renderShell(content) {
+  return `<div class="app-shell">
+    <header class="masthead">
+      <div><p class="eyebrow">HARMONY WORKBENCH / 01</p><h1>和弦組成音<br>練習器</h1><p class="subhead">用正確拼寫，拆開每一個和弦。</p></div>
+      <p class="muted">純理論練習 · 不保存紀錄</p>
+    </header>${content}
+  </div>`;
+}
+
+function renderSetup() {
+  const selected = new Set(state.config.templateIds);
+  const types = chordGroups().map(({ section, groups }, index) => {
+    const typeCount = groups.reduce((total, group) => total + group.templates.length, 0);
+    const sectionClass = ['section-basic', 'section-extended', 'section-altered'][index];
+    return `<section class="type-section ${sectionClass}" aria-labelledby="section-${index}">
+    <header class="type-section-head"><div><p class="section-index">0${index + 1}</p><h3 id="section-${index}">${section}</h3></div><span class="type-count">${typeCount} 種</span></header>
+    <div class="section-groups">
+    ${groups.map(({ category, templates }) => `<div class="type-group">
+      <h4>${category}</h4>
+      <div class="type-list">${templates.map((template) => `<label><input class="type-check" type="checkbox" value="${template.id}" ${selected.has(template.id) ? 'checked' : ''} aria-label="${escapeHtml(template.label)}"><span><b>${escapeHtml(templateSymbol(template.id).replaceAll('b', '♭').replaceAll('#', '♯'))}</b><small>${escapeHtml(template.label)}</small></span></label>`).join('')}</div>
+    </div>`).join('')}
+    </div>
+  </section>`;
+  }).join('');
+  return renderShell(`<section class="paper-panel setup">
+    <header class="setup-intro">
+      <div>
+        <p class="eyebrow" style="color:#7a5126">SET THE SESSION</p>
+        <h2>先決定你要練哪一種答案。</h2>
+      </div>
+      <p class="setup-copy">系統依完整理論堆疊出題，並嚴格判定音名字母與升降記號。</p>
+    </header>
+    <div class="setup-layout">
+      <aside class="setup-controls" aria-label="練習設定">
+        <section class="control-card">
+          <p class="control-number">01</p>
+          <h3>練習方向</h3>
+          <div class="segment" role="radiogroup" aria-label="練習方向">
+            ${[['forward', '看和弦填組成音'], ['reverse', '看組成音猜和弦'], ['mixed', '混合出題']].map(([value, label]) => `<label><input type="radio" name="mode" value="${value}" ${state.config.mode === value ? 'checked' : ''}><span>${label}</span></label>`).join('')}
+          </div>
+        </section>
+        <section class="control-card">
+          <p class="control-number">02</p>
+          <label class="field-label" for="duration">每題作答時間</label><select class="time-select" id="duration">
+            <option value="0" ${state.config.duration === 0 ? 'selected' : ''}>不限時</option>
+            ${Array.from({ length: 12 }, (_, index) => (index + 1) * 5).map((seconds) => `<option value="${seconds}" ${state.config.duration === seconds ? 'selected' : ''}>${seconds} 秒</option>`).join('')}
+          </select>
+        </section>
+        <section class="control-card">
+          <p class="control-number">03</p>
+          <label class="field-label" for="question-count">答題數</label><select class="time-select" id="question-count">
+            ${[5, 10, 15, 20, 30].map((count) => `<option value="${count}" ${state.config.questionCount === count ? 'selected' : ''}>${count} 題</option>`).join('')}
+          </select>
+        </section>
+      </aside>
+      <section class="chord-selector" aria-labelledby="chord-selector-title">
+        <div class="type-header"><div><span class="field-label" id="chord-selector-title">和弦類型</span><p class="setup-copy" style="margin:0">依和弦組成公式分為基本、延伸與變化。可從類別內挑選。</p></div><div class="type-actions"><button class="text-button" type="button" data-action="select-basic">基本</button><button class="text-button" type="button" data-action="select-all">全選</button><button class="text-button" type="button" data-action="select-none">清空</button></div></div>
+        <div class="type-groups">${types}</div>
+      </section>
+    </div>
+    <footer class="setup-footer">
+      <div><p class="error-note" role="alert">${escapeHtml(state.setupError)}</p><p class="selection-summary ${selected.size ? '' : 'is-empty'}" aria-live="polite"><span>本次已選</span><strong>${selected.size}</strong><span>種和弦類型</span></p></div>
+      <div class="setup-footer-actions"><button class="secondary-button" type="button" data-action="toggle-setup-fretboard">${state.setupFretboardOpen ? '收合指板對照' : '查看吉他指板音名'}</button><button class="primary-button" type="button" data-action="start">開始練習 →</button></div>
+    </footer>
+    ${state.setupFretboardOpen ? renderFretboardPanel([], '設定用吉他指板音名圖', '標準調弦 E A D G B E · 1–12 格 · 音名僅標示自然音') : ''}
+  </section>`);
+}
+
+function renderAnswerGrid(grid, degrees, name) {
+  const locked = Boolean(state.feedback);
+  const header = degrees.map((degree) => `<div class="degree-head">${escapeHtml(degree.replaceAll('bb', '♭♭').replaceAll('b', '♭').replaceAll('#', '♯'))}</div>`).join('');
+  const row = grid.map((entry, column) => {
+    const active = state.focusGrid === name && state.focus.column === column;
+    const display = `${entry.letter || '—'}${entry.accidental === 1 ? '♯' : entry.accidental === -1 ? '♭' : ''}`;
+    return `<div class="note-slot">
+      <button type="button" class="alter-button sharp" data-alter-key="+" data-grid="${name}" data-column="${column}" ${locked ? 'disabled' : ''} aria-label="${escapeHtml(degrees[column])}升半音">♯</button>
+      <button type="button" class="grid-cell ${active ? 'is-active' : ''}" data-note-cell data-grid="${name}" data-column="${column}" tabindex="${active && !locked ? '0' : '-1'}" ${locked ? 'disabled' : ''} aria-label="${escapeHtml(degrees[column])}的音名：${display}">${display}</button>
+      <button type="button" class="alter-button flat" data-alter-key="-" data-grid="${name}" data-column="${column}" ${locked ? 'disabled' : ''} aria-label="${escapeHtml(degrees[column])}降半音">♭</button>
+    </div>`;
+  }).join('');
+  return `<div class="answer-grid-wrap"><div class="answer-grid" role="grid" style="--columns:${grid.length}">
+    <div class="grid-label">度數</div>${header}
+    <div class="grid-label">音名</div>${row}
+  </div></div>`;
+}
+
+function renderNoteControls() {
+  return `<div class="note-controls" aria-label="音名輸入按鍵"><div class="note-control-row"><span>音名</span>${['C', 'D', 'E', 'F', 'G', 'A', 'B'].map((letter) => `<button class="key-button" type="button" data-input-key="${letter}">${letter}</button>`).join('')}</div><div class="note-control-row"><span>升降</span><button class="key-button wide" type="button" data-input-key="-">♭</button><button class="key-button wide" type="button" data-input-key="+">♯</button></div></div>`;
+}
+
+function renderForwardInput() {
+  return `<p class="prompt">請依照度數，由左至右填入組成音。</p>
+    ${renderAnswerGrid(state.answerGrid, state.question.tones.map((tone) => tone.degree), 'answer')}
+    <p class="input-hint">鍵盤：← → 移動；C–B 不分大小寫；+ 為升、- 為降。輸入下一個音名字母會自動前進。</p>
+    ${renderNoteControls()}`;
+}
+
+function renderReverseInput() {
+  const allowed = CHORD_TEMPLATES.filter((template) => state.config.templateIds.includes(template.id));
+  return `<p class="prompt">先填根音，再選擇符合的和弦類型。</p>
+    ${renderAnswerGrid(state.rootGrid, ['根音'], 'root')}
+    <label class="reverse-select"><span>和弦類型</span><select id="reverse-template" ${state.feedback ? 'disabled' : ''}><option value="">請選擇…</option>${allowed.map((template) => `<option value="${template.id}" ${state.reverseTemplateId === template.id ? 'selected' : ''}>${escapeHtml(templateSymbol(template.id).replaceAll('b', '♭').replaceAll('#', '♯'))}　${escapeHtml(template.label)}</option>`).join('')}</select></label>
+    <p class="input-hint">鍵盤：C–B 不分大小寫；+ 為升、- 為降。</p>
+    ${renderNoteControls()}`;
+}
+
+function displayNotation(value) {
+  return String(value).replaceAll('bb', '♭♭').replaceAll('b', '♭').replaceAll('#', '♯');
+}
+
+function renderFormulaStrip(question) {
+  const formula = question.template.degrees.map(displayNotation).join(' · ');
+  return `<div class="formula-strip"><span>和弦公式</span><strong>${escapeHtml(formula)}</strong><em>${escapeHtml(question.template.label)}</em></div>`;
+}
+
+function renderFeedback() {
+  if (!state.feedback) return '';
+  const { correct, timedOut } = state.feedback;
+  let details = '';
+  if (state.direction === 'forward') {
+    details = `<ul class="correction-list">${state.feedback.result.entries.map((entry) => `<li><span>${escapeHtml(entry.degree)}</span><span class="${entry.correct ? 'right' : 'wrong'}">你的：${escapeHtml(entry.actual || '—')}</span><span class="right">正解：${escapeHtml(entry.expected)}</span></li>`).join('')}</ul>`;
+  } else {
+    const rootAnswer = notesFromGrid(state.rootGrid)[0] || '—';
+    const chosen = state.reverseTemplateId ? CHORD_TEMPLATES.find((template) => template.id === state.reverseTemplateId)?.id ?? '—' : '—';
+    details = `<ul class="correction-list"><li><span>根音</span><span class="${rootAnswer === state.question.root ? 'right' : 'wrong'}">你的：${escapeHtml(rootAnswer)}</span><span class="right">正解：${escapeHtml(state.question.root)}</span></li><li><span>類型</span><span class="${chosen === state.question.templateId ? 'right' : 'wrong'}">你的：${escapeHtml(chosen)}</span><span class="right">正解：${escapeHtml(state.question.templateId)}</span></li></ul>`;
+  }
+  const nextButton = isSessionComplete(state.session)
+    ? '<button class="primary-button" type="button" data-action="summary">查看結算 →</button>'
+    : '<button class="primary-button" type="button" data-action="next">下一題 →</button>';
+  return `<section class="feedback ${correct ? '' : 'wrong'}" aria-live="polite"><p class="feedback-title">${timedOut ? '時間到。' : correct ? '正確。' : '再看一次正確拼寫。'}</p>${details}${renderFormulaStrip(state.question)}<div class="feedback-actions"><button class="secondary-button" type="button" data-action="toggle-fretboard">${state.fretboardOpen ? '收合吉他指板' : '顯示吉他指板'}</button>${nextButton}</div></section>`;
+}
+
+function renderFretboardPanel(chordNotes, heading, detail) {
+  const cells = fretboardCells(chordNotes);
+  const rows = FRETBOARD_TAB_ORDER.map((stringIndex) => {
+    const stringCells = cells.filter((cell) => cell.stringIndex === stringIndex);
+    const width = 1 + (5 - stringIndex) * 0.28;
+    return `<div class="fret-row" style="--string-width:${width}px"><div class="fret-string">${stringCells[0].stringName}</div>${stringCells.map((cell) => `<div class="fret-cell ${cell.targetTone ? 'target' : ''}" title="第 ${cell.fret} 格：${cell.targetTone ? '本題組成音' : cell.naturalName || '升降音位置'}">${cell.naturalName ? `<span class="fret-note">${escapeHtml(cell.naturalName)}</span>` : ''}${cell.targetTone ? '<span class="target-dot" aria-label="本題組成音"></span>' : ''}</div>`).join('')}</div>`;
+  }).join('');
+  return `<section class="fretboard-panel"><div class="fretboard-title"><div><p class="eyebrow">FRETBOARD REFERENCE</p><h2>${escapeHtml(heading)}</h2></div><p>${escapeHtml(detail)}</p></div><div class="fretboard-scroll"><div class="fretboard">${rows}</div><div class="fret-numbers"><span>弦</span>${Array.from({ length: 12 }, (_, index) => `<span>${index + 1}</span>`).join('')}</div></div></section>`;
+}
+
+function renderFretboard() {
+  if (!state.feedback || !state.fretboardOpen) return '';
+  return renderFretboardPanel(state.question.tones, '吉他指板音名圖', '第 1–12 格 · 本題組成音以圓點標示 · 音名僅標示自然音');
+}
+
+function renderSummary() {
+  const score = sessionScore(state.session);
+  const mistakes = state.session.mistakes.map((mistake, index) => `<article class="mistake-card"><div><p class="mistake-index">錯題 ${index + 1}</p><h3>${escapeHtml(displayNotation(mistake.symbol))}</h3><p>${escapeHtml(mistake.label)}</p></div><div><p class="mistake-detail"><span>公式</span>${escapeHtml(mistake.formula.map(displayNotation).join(' · '))}</p><p class="mistake-detail"><span>組成音</span>${escapeHtml(mistake.tones.map(displayNotation).join(' · '))}</p></div></article>`).join('');
+  return renderShell(`<section class="paper-panel summary-panel">
+    <header class="summary-heading"><p class="eyebrow" style="color:#7a5126">SESSION COMPLETE</p><h2>本次成績</h2><p>共完成 ${state.session.total} 題，以下保留這次練習的錯題。</p></header>
+    <section class="scoreboard" aria-label="本次成績"><div class="accuracy-score"><strong>${score.accuracy}%</strong><span>正確率</span></div><div class="score-count"><span>答對 <b>${score.correct}</b> 題</span><span>答錯 <b>${score.wrong}</b> 題</span></div></section>
+    <section class="mistake-list"><div class="mistake-list-head"><h3>答錯的和弦</h3><span>${score.wrong} 題</span></div>${mistakes || '<p class="no-mistakes">全部答對，這輪沒有需要複習的和弦。</p>'}</section>
+    <div class="summary-actions"><button class="secondary-button" type="button" data-action="settings">重新設定</button><button class="primary-button" type="button" data-action="restart">以相同設定再練一次 →</button></div>
+  </section>`);
+}
+
+function renderPractice() {
+  const forward = state.direction === 'forward';
+  const questionNumber = Math.min(state.session.completed + (state.feedback ? 0 : 1), state.session.total);
+  const timer = state.config.duration ? `<div class="timer" data-timer>--</div>` : `<div class="timer">不限時</div>`;
+  const subject = forward ? `<p class="chord-symbol">${escapeHtml(state.question.symbol)}</p>` : `<div class="tone-set">${state.question.tones.map((tone) => `<span class="tone-chip">${escapeHtml(tone.name)}</span>`).join('')}</div>`;
+  const input = forward ? renderForwardInput() : renderReverseInput();
+  return renderShell(`<div class="practice-top"><button class="icon-button" type="button" data-action="settings">← 重新設定</button>${timer}</div>
+    <section class="paper-panel question-card"><div class="question-strip"><span class="mode-badge">${forward ? '看和弦填組成音' : '看組成音猜和弦'}</span><span>第 ${questionNumber}／${state.session.total} 題</span></div><div class="question-body"><p class="prompt">${forward ? '這個和弦由哪些音組成？' : '這組音構成什麼和弦？'}</p>${subject}${state.feedback ? '' : input}${state.feedback ? renderFeedback() : `<div class="submit-row"><p class="submit-message" role="alert"></p><button class="primary-button" type="button" data-action="submit">送出答案</button></div>`}</div></section>${renderFretboard()}`);
+}
+
+function render(restoreFocus = false) {
+  app.innerHTML = state.view === 'setup' ? renderSetup() : state.view === 'summary' ? renderSummary() : renderPractice();
+  if (state.view === 'practice' && state.config.duration && !state.feedback) updateTimerDisplay();
+  if (restoreFocus && !state.feedback) requestAnimationFrame(() => app.querySelector(`[data-note-cell][data-grid="${state.focusGrid}"][data-column="${state.focus.column}"]`)?.focus());
+}
+
+function clearTimer() {
+  if (state.timerId) window.clearInterval(state.timerId);
+  state.timerId = null;
+  state.deadline = null;
+}
+
+function updateTimerDisplay() {
+  if (!state.deadline || state.feedback) return;
+  const seconds = Math.max(0, Math.ceil((state.deadline - Date.now()) / 1000));
+  const timer = app.querySelector('[data-timer]');
+  if (timer) {
+    timer.textContent = `${seconds.toString().padStart(2, '0')} 秒`;
+    timer.classList.toggle('danger', seconds <= 5);
+  }
+  if (seconds <= 0) finishQuestion(true);
+}
+
+function startTimer() {
+  clearTimer();
+  if (!state.config.duration) return;
+  state.deadline = Date.now() + state.config.duration * 1000;
+  updateTimerDisplay();
+  state.timerId = window.setInterval(updateTimerDisplay, 250);
+}
+
+function issueQuestion() {
+  clearTimer();
+  state.question = randomQuestion({ templateIds: state.config.templateIds }, state.previousKey);
+  state.previousKey = state.question.key;
+  state.direction = state.config.mode === 'mixed' ? (Math.random() < 0.5 ? 'forward' : 'reverse') : state.config.mode;
+  state.answerGrid = createAnswerGrid(state.question.tones.length);
+  state.rootGrid = createAnswerGrid(1);
+  state.reverseTemplateId = '';
+  state.focus = { column: 0 };
+  state.focusGrid = state.direction === 'forward' ? 'answer' : 'root';
+  state.feedback = null;
+  state.fretboardOpen = false;
+  render(true);
+  startTimer();
+}
+
+function finishQuestion(timedOut = false) {
+  if (state.feedback) return;
+  clearTimer();
+  if (state.direction === 'forward') {
+    const result = gradeNotes(state.question.tones, notesFromGrid(state.answerGrid));
+    state.feedback = { ...result, result, timedOut };
+  } else {
+    const root = notesFromGrid(state.rootGrid)[0];
+    state.feedback = { correct: root === state.question.root && state.reverseTemplateId === state.question.templateId, timedOut };
+  }
+  state.session = recordQuestionResult(state.session, state.question, state.feedback.correct);
+  render();
+}
+
+function selectedTemplateIds() {
+  return [...app.querySelectorAll('.type-check:checked')].map((input) => input.value);
+}
+
+function setInputKey(key, gridName = state.focusGrid, column = state.focus.column) {
+  const grid = gridName === 'answer' ? state.answerGrid : state.rootGrid;
+  const next = applyAnswerKey(grid, column, key);
+  if (gridName === 'answer') state.answerGrid = next.grid; else state.rootGrid = next.grid;
+  state.focusGrid = gridName;
+  state.focus = { column: next.column };
+  render(true);
+}
+
+app.addEventListener('change', (event) => {
+  if (event.target.matches('input[name="mode"]')) state.config.mode = event.target.value;
+  if (event.target.matches('#duration')) state.config.duration = Number(event.target.value);
+  if (event.target.matches('#question-count')) state.config.questionCount = Number(event.target.value);
+  if (event.target.matches('.type-check')) {
+    state.config.templateIds = selectedTemplateIds();
+    render();
+  }
+  if (event.target.matches('#reverse-template')) state.reverseTemplateId = event.target.value;
+});
+
+app.addEventListener('click', (event) => {
+  const alterButton = event.target.closest('[data-alter-key]');
+  if (alterButton && !state.feedback) {
+    setInputKey(alterButton.dataset.alterKey, alterButton.dataset.grid, Number(alterButton.dataset.column));
+    return;
+  }
+  const cell = event.target.closest('[data-note-cell]');
+  if (cell && !state.feedback) {
+    state.focusGrid = cell.dataset.grid;
+    state.focus = { column: Number(cell.dataset.column) };
+    render(true);
+    return;
+  }
+  const inputKey = event.target.closest('[data-input-key]');
+  if (inputKey && !state.feedback) {
+    setInputKey(inputKey.dataset.inputKey);
+    return;
+  }
+  const action = event.target.closest('[data-action]')?.dataset.action;
+  if (!action) return;
+  if (action === 'select-all') { state.config.templateIds = [...allTemplateIds]; render(); }
+  if (action === 'select-basic') { state.config.templateIds = [...BASIC_TEMPLATE_IDS]; render(); }
+  if (action === 'select-none') { state.config.templateIds = []; render(); }
+  if (action === 'start') {
+    state.config.templateIds = selectedTemplateIds();
+    if (!state.config.templateIds.length) { state.setupError = '請至少選擇一種和弦類型。'; render(); return; }
+    state.setupError = '';
+    state.view = 'practice';
+    state.session = createPracticeSession(state.config.questionCount);
+    issueQuestion();
+  }
+  if (action === 'settings') { clearTimer(); state.view = 'setup'; state.question = null; render(); }
+  if (action === 'submit') finishQuestion(false);
+  if (action === 'next') issueQuestion();
+  if (action === 'summary') { state.view = 'summary'; render(); }
+  if (action === 'restart') { state.view = 'practice'; state.session = createPracticeSession(state.config.questionCount); state.previousKey = ''; issueQuestion(); }
+  if (action === 'toggle-fretboard') { state.fretboardOpen = !state.fretboardOpen; render(); }
+  if (action === 'toggle-setup-fretboard') { state.setupFretboardOpen = !state.setupFretboardOpen; render(); }
+});
+
+app.addEventListener('keydown', (event) => {
+  if (state.view !== 'practice' || state.feedback) return;
+  const cell = event.target.closest('[data-note-cell]');
+  if (!cell) return;
+  const gridName = cell.dataset.grid;
+  const grid = gridName === 'answer' ? state.answerGrid : state.rootGrid;
+  const focus = { column: Number(cell.dataset.column) };
+  if (['ArrowLeft', 'ArrowRight'].includes(event.key)) {
+    event.preventDefault();
+    state.focusGrid = gridName;
+    state.focus = moveFocus(focus, event.key, grid.length);
+    render(true);
+    return;
+  }
+  if (event.key === 'Enter') { event.preventDefault(); finishQuestion(false); return; }
+  if (/^[a-g]$/i.test(event.key) || ['+', '-', 'Delete', 'Backspace', 'n', 'N'].includes(event.key)) {
+    event.preventDefault();
+    setInputKey(event.key, gridName, focus.column);
+  }
+});
+
+render();
+</script>
+  </body>
+</html>
