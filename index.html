@@ -328,6 +328,15 @@ const DEGREE_SPECS = {
 
 const ROOTS = LETTERS.flatMap((letter) => [letter, `${letter}#`, `${letter}b`]);
 
+function rootNamesForAccidentals(accidentals = ['natural', 'sharp', 'flat']) {
+  const selected = new Set(accidentals);
+  return ROOTS.filter((root) => (
+    (root.endsWith('#') && selected.has('sharp'))
+    || (root.endsWith('b') && selected.has('flat'))
+    || (!root.endsWith('#') && !root.endsWith('b') && selected.has('natural'))
+  ));
+}
+
 function templateSymbol(templateId) {
   if (!TEMPLATE_BY_ID.has(templateId)) throw new Error(`找不到和弦類型：${templateId}`);
   return templateId === 'maj' ? 'maj' : SYMBOLS[templateId];
@@ -535,7 +544,13 @@ const typeGroupSpecs = [
 ];
 const state = {
   view: 'setup',
-  config: { mode: 'mixed', duration: 0, questionCount: 10, templateIds: [...BASIC_TEMPLATE_IDS] },
+  config: {
+    mode: 'mixed',
+    duration: 0,
+    questionCount: 10,
+    templateIds: [...BASIC_TEMPLATE_IDS],
+    rootAccidentals: ['natural', 'sharp', 'flat'],
+  },
   session: null,
   question: null,
   previousKey: '',
@@ -578,6 +593,7 @@ function renderShell(content) {
 
 function renderSetup() {
   const selected = new Set(state.config.templateIds);
+  const selectedRootAccidentals = new Set(state.config.rootAccidentals);
   const types = chordGroups().map(({ section, groups }, index) => {
     const typeCount = groups.reduce((total, group) => total + group.templates.length, 0);
     const sectionClass = ['section-basic', 'section-extended', 'section-altered'][index];
@@ -620,6 +636,14 @@ function renderSetup() {
           <label class="field-label" for="question-count">答題數</label><select class="time-select" id="question-count">
             ${[5, 10, 15, 20, 30].map((count) => `<option value="${count}" ${state.config.questionCount === count ? 'selected' : ''}>${count} 題</option>`).join('')}
           </select>
+        </section>
+        <section class="control-card">
+          <p class="control-number">04</p>
+          <h3>根音記號</h3>
+          <p class="setup-copy" style="margin:0 0 10px">選擇題目和弦的根音是否帶升降記號。</p>
+          <div class="segment" role="group" aria-label="根音記號篩選">
+            ${[['natural', '自然音'], ['sharp', '♯ 根音'], ['flat', '♭ 根音']].map(([value, label]) => `<label><input class="root-accidental-check" type="checkbox" value="${value}" ${selectedRootAccidentals.has(value) ? 'checked' : ''}><span>${label}</span></label>`).join('')}
+          </div>
         </section>
       </aside>
       <section class="chord-selector" aria-labelledby="chord-selector-title">
@@ -768,7 +792,10 @@ function startTimer() {
 
 function issueQuestion() {
   clearTimer();
-  state.question = randomQuestion({ templateIds: state.config.templateIds }, state.previousKey);
+  state.question = randomQuestion({
+    templateIds: state.config.templateIds,
+    rootNames: rootNamesForAccidentals(state.config.rootAccidentals),
+  }, state.previousKey);
   state.previousKey = state.question.key;
   state.direction = state.config.mode === 'mixed' ? (Math.random() < 0.5 ? 'forward' : 'reverse') : state.config.mode;
   state.answerGrid = createAnswerGrid(state.question.tones.length);
@@ -800,6 +827,10 @@ function selectedTemplateIds() {
   return [...app.querySelectorAll('.type-check:checked')].map((input) => input.value);
 }
 
+function selectedRootAccidentals() {
+  return [...app.querySelectorAll('.root-accidental-check:checked')].map((input) => input.value);
+}
+
 function setInputKey(key, gridName = state.focusGrid, column = state.focus.column) {
   const grid = gridName === 'answer' ? state.answerGrid : state.rootGrid;
   const next = applyAnswerKey(grid, column, key);
@@ -813,6 +844,11 @@ app.addEventListener('change', (event) => {
   if (event.target.matches('input[name="mode"]')) state.config.mode = event.target.value;
   if (event.target.matches('#duration')) state.config.duration = Number(event.target.value);
   if (event.target.matches('#question-count')) state.config.questionCount = Number(event.target.value);
+  if (event.target.matches('.root-accidental-check')) {
+    state.config.rootAccidentals = selectedRootAccidentals();
+    state.setupError = '';
+    render();
+  }
   if (event.target.matches('.type-check')) {
     state.config.templateIds = selectedTemplateIds();
     render();
@@ -845,7 +881,9 @@ app.addEventListener('click', (event) => {
   if (action === 'select-none') { state.config.templateIds = []; render(); }
   if (action === 'start') {
     state.config.templateIds = selectedTemplateIds();
+    state.config.rootAccidentals = selectedRootAccidentals();
     if (!state.config.templateIds.length) { state.setupError = '請至少選擇一種和弦類型。'; render(); return; }
+    if (!state.config.rootAccidentals.length) { state.setupError = '請至少選擇一種根音記號。'; render(); return; }
     state.setupError = '';
     state.view = 'practice';
     state.session = createPracticeSession(state.config.questionCount);
