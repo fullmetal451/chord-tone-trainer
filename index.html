@@ -505,6 +505,11 @@ function nextActionAfterFeedback(session) {
   return isSessionComplete(session) ? 'summary' : 'next';
 }
 
+function feedbackKeyboardAction({ key, view, hasFeedback, session }) {
+  if (key !== 'Enter' || view !== 'practice' || !hasFeedback) return null;
+  return nextActionAfterFeedback(session);
+}
+
 function sessionScore(session) {
   const wrong = session.mistakes.length;
   const correct = session.completed - wrong;
@@ -827,8 +832,8 @@ function finishQuestion(timedOut = false) {
   render();
 }
 
-function advanceFromFeedback() {
-  if (nextActionAfterFeedback(state.session) === 'summary') {
+function advanceFromFeedback(action = nextActionAfterFeedback(state.session)) {
+  if (action === 'summary') {
     state.view = 'summary';
     render();
     return;
@@ -910,13 +915,19 @@ app.addEventListener('click', (event) => {
   if (action === 'toggle-setup-fretboard') { state.setupFretboardOpen = !state.setupFretboardOpen; render(); }
 });
 
-app.addEventListener('keydown', (event) => {
-  if (state.view !== 'practice') return;
-  if (event.key === 'Enter' && state.feedback) {
+document.addEventListener('keydown', (event) => {
+  const feedbackAction = feedbackKeyboardAction({
+    key: event.key,
+    view: state.view,
+    hasFeedback: Boolean(state.feedback),
+    session: state.session,
+  });
+  if (feedbackAction) {
     event.preventDefault();
-    advanceFromFeedback();
+    advanceFromFeedback(feedbackAction);
     return;
   }
+  if (state.view !== 'practice') return;
   if (state.feedback) return;
   const cell = event.target.closest('[data-note-cell]');
   if (!cell) return;
