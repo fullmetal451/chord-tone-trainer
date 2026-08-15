@@ -524,6 +524,18 @@ function sessionScore(session) {
 
 
 
+function createDefaultPracticeConfig() {
+  return {
+    mode: 'forward',
+    duration: 0,
+    questionCount: 10,
+    templateIds: [...BASIC_TEMPLATE_IDS],
+    rootAccidentals: ['natural'],
+  };
+}
+
+
+
 const app = document.querySelector('[data-app-root]');
 const allTemplateIds = CHORD_TEMPLATES.map((template) => template.id);
 const typeGroupSpecs = [
@@ -555,13 +567,7 @@ const typeGroupSpecs = [
 ];
 const state = {
   view: 'setup',
-  config: {
-    mode: 'mixed',
-    duration: 0,
-    questionCount: 10,
-    templateIds: [...BASIC_TEMPLATE_IDS],
-    rootAccidentals: ['natural', 'sharp', 'flat'],
-  },
+  config: createDefaultPracticeConfig(),
   session: null,
   question: null,
   previousKey: '',
