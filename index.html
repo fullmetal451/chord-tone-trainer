@@ -501,6 +501,10 @@ function isSessionComplete(session) {
   return session.completed >= session.total;
 }
 
+function nextActionAfterFeedback(session) {
+  return isSessionComplete(session) ? 'summary' : 'next';
+}
+
 function sessionScore(session) {
   const wrong = session.mistakes.length;
   const correct = session.completed - wrong;
@@ -717,9 +721,9 @@ function renderFeedback() {
     const chosen = state.reverseTemplateId ? CHORD_TEMPLATES.find((template) => template.id === state.reverseTemplateId)?.id ?? '—' : '—';
     details = `<ul class="correction-list"><li><span>根音</span><span class="${rootAnswer === state.question.root ? 'right' : 'wrong'}">你的：${escapeHtml(rootAnswer)}</span><span class="right">正解：${escapeHtml(state.question.root)}</span></li><li><span>類型</span><span class="${chosen === state.question.templateId ? 'right' : 'wrong'}">你的：${escapeHtml(chosen)}</span><span class="right">正解：${escapeHtml(state.question.templateId)}</span></li></ul>`;
   }
-  const nextButton = isSessionComplete(state.session)
-    ? '<button class="primary-button" type="button" data-action="summary">查看結算 →</button>'
-    : '<button class="primary-button" type="button" data-action="next">下一題 →</button>';
+  const nextButton = nextActionAfterFeedback(state.session) === 'summary'
+    ? '<button class="primary-button" type="button" data-action="summary">查看結算（Enter）→</button>'
+    : '<button class="primary-button" type="button" data-action="next">下一題（Enter）→</button>';
   return `<section class="feedback ${correct ? '' : 'wrong'}" aria-live="polite"><p class="feedback-title">${timedOut ? '時間到。' : correct ? '正確。' : '再看一次正確拼寫。'}</p>${details}${renderFormulaStrip(state.question)}<div class="feedback-actions"><button class="secondary-button" type="button" data-action="toggle-fretboard">${state.fretboardOpen ? '收合吉他指板' : '顯示吉他指板'}</button>${nextButton}</div></section>`;
 }
 
@@ -823,6 +827,15 @@ function finishQuestion(timedOut = false) {
   render();
 }
 
+function advanceFromFeedback() {
+  if (nextActionAfterFeedback(state.session) === 'summary') {
+    state.view = 'summary';
+    render();
+    return;
+  }
+  issueQuestion();
+}
+
 function selectedTemplateIds() {
   return [...app.querySelectorAll('.type-check:checked')].map((input) => input.value);
 }
@@ -891,15 +904,20 @@ app.addEventListener('click', (event) => {
   }
   if (action === 'settings') { clearTimer(); state.view = 'setup'; state.question = null; render(); }
   if (action === 'submit') finishQuestion(false);
-  if (action === 'next') issueQuestion();
-  if (action === 'summary') { state.view = 'summary'; render(); }
+  if (action === 'next' || action === 'summary') advanceFromFeedback();
   if (action === 'restart') { state.view = 'practice'; state.session = createPracticeSession(state.config.questionCount); state.previousKey = ''; issueQuestion(); }
   if (action === 'toggle-fretboard') { state.fretboardOpen = !state.fretboardOpen; render(); }
   if (action === 'toggle-setup-fretboard') { state.setupFretboardOpen = !state.setupFretboardOpen; render(); }
 });
 
 app.addEventListener('keydown', (event) => {
-  if (state.view !== 'practice' || state.feedback) return;
+  if (state.view !== 'practice') return;
+  if (event.key === 'Enter' && state.feedback) {
+    event.preventDefault();
+    advanceFromFeedback();
+    return;
+  }
+  if (state.feedback) return;
   const cell = event.target.closest('[data-note-cell]');
   if (!cell) return;
   const gridName = cell.dataset.grid;
