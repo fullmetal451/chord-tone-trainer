@@ -198,7 +198,8 @@ h3 { margin-bottom: 8px; font-size: 1rem; }
 .fret-string { display: grid; place-items: center; color: #ffdf98; background: rgb(16 7 2 / 0.5); font: 700 0.75rem/1 ui-monospace, Consolas, monospace; }
 .fret-cell { position: relative; z-index: 1; display: grid; place-items: center; border-left: 1px solid rgb(255 234 183 / 0.35); color: #f2ddbc; font: 700 0.82rem/1 ui-monospace, Consolas, monospace; text-align: center; }
 .fret-note { position: relative; z-index: 2; padding: 2px 4px; border-radius: 3px; color: #f5e0ba; background: rgb(55 29 16 / 0.74); }
-.target-dot { position: absolute; z-index: 3; top: 6px; right: 6px; width: 13px; height: 13px; border: 2px solid #fff1ba; border-radius: 50%; background: #f5c866; box-shadow: 0 1px 4px rgb(0 0 0 / 0.7); }
+.fret-note.target-note { min-width: 27px; padding: 5px 6px; color: #2e180d; background: #f5c866; box-shadow: 0 1px 4px rgb(0 0 0 / 0.7); font-weight: 800; }
+.fret-note.target-note.root-note { color: #fff6d9; background: #70401f; font-weight: 900; outline: 3px solid #fff1ba; outline-offset: 2px; box-shadow: 0 0 0 5px rgb(245 200 102 / 0.34), 0 1px 5px rgb(0 0 0 / 0.8); }
 .fret-numbers { display: grid; grid-template-columns: 44px repeat(12, minmax(0, 1fr)); min-width: 640px; margin-top: 6px; color: #edcf9a; font: 700 0.73rem/1 ui-monospace, Consolas, monospace; text-align: center; }
 .fret-numbers span:first-child { visibility: hidden; }
 
@@ -417,6 +418,7 @@ function fretboardCells(chordNotes) {
       naturalName: PITCH_LABELS[pitchClass].includes('/') ? '' : PITCH_LABELS[pitchClass],
       targetTone,
       degree: targetTone?.degree ?? null,
+      isRoot: targetTone?.degree === '1',
     };
   }));
 }
@@ -734,17 +736,18 @@ function renderFeedback() {
 
 function renderFretboardPanel(chordNotes, heading, detail) {
   const cells = fretboardCells(chordNotes);
+  const isReferenceView = chordNotes.length === 0;
   const rows = FRETBOARD_TAB_ORDER.map((stringIndex) => {
     const stringCells = cells.filter((cell) => cell.stringIndex === stringIndex);
     const width = 1 + (5 - stringIndex) * 0.28;
-    return `<div class="fret-row" style="--string-width:${width}px"><div class="fret-string">${stringCells[0].stringName}</div>${stringCells.map((cell) => `<div class="fret-cell ${cell.targetTone ? 'target' : ''}" title="第 ${cell.fret} 格：${cell.targetTone ? '本題組成音' : cell.naturalName || '升降音位置'}">${cell.naturalName ? `<span class="fret-note">${escapeHtml(cell.naturalName)}</span>` : ''}${cell.targetTone ? '<span class="target-dot" aria-label="本題組成音"></span>' : ''}</div>`).join('')}</div>`;
+    return `<div class="fret-row" style="--string-width:${width}px"><div class="fret-string">${stringCells[0].stringName}</div>${stringCells.map((cell) => `<div class="fret-cell ${cell.targetTone ? 'target' : ''}" title="第 ${cell.fret} 格：${cell.targetTone ? `本題組成音 ${cell.targetTone.name}` : cell.naturalName || '升降音位置'}">${cell.targetTone ? `<span class="fret-note target-note ${cell.isRoot ? 'root-note' : ''}">${escapeHtml(cell.targetTone.name)}</span>` : isReferenceView && cell.naturalName ? `<span class="fret-note">${escapeHtml(cell.naturalName)}</span>` : ''}</div>`).join('')}</div>`;
   }).join('');
   return `<section class="fretboard-panel"><div class="fretboard-title"><div><p class="eyebrow">FRETBOARD REFERENCE</p><h2>${escapeHtml(heading)}</h2></div><p>${escapeHtml(detail)}</p></div><div class="fretboard-scroll"><div class="fretboard">${rows}</div><div class="fret-numbers"><span>弦</span>${Array.from({ length: 12 }, (_, index) => `<span>${index + 1}</span>`).join('')}</div></div></section>`;
 }
 
 function renderFretboard() {
   if (!state.feedback || !state.fretboardOpen) return '';
-  return renderFretboardPanel(state.question.tones, '吉他指板音名圖', '第 1–12 格 · 本題組成音以圓點標示 · 音名僅標示自然音');
+  return renderFretboardPanel(state.question.tones, '吉他指板音名圖', '第 1–12 格 · 僅顯示本題組成音 · 根音以粗體外框標示');
 }
 
 function renderSummary() {
