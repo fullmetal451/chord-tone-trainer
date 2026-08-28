@@ -51,6 +51,28 @@ h2 { margin-bottom: 10px; color: var(--ink); font-size: clamp(1.45rem, 3vw, 2rem
 h3 { margin-bottom: 8px; font-size: 1rem; }
 .subhead, .muted { color: var(--paper-muted); }
 .subhead { margin: 0; max-width: 36rem; line-height: 1.55; }
+.masthead-meta { display: grid; justify-items: end; gap: 10px; }
+.masthead-meta .muted { margin: 0; font-size: 0.88rem; }
+.version-row { display: flex; flex-wrap: wrap; justify-content: end; gap: 8px; align-items: center; }
+.version-status { padding: 7px 9px; border: 1px solid rgb(240 185 80 / 0.35); color: #d9c5a0; background: rgb(0 0 0 / 0.16); font: 700 0.73rem/1 ui-monospace, Consolas, monospace; }
+.version-status b { color: var(--amber-hot); }
+.release-history-toggle { display: inline-flex; gap: 9px; align-items: center; padding: 7px 9px; border: 1px solid #b8803d; color: #ffe5aa; background: rgb(92 50 24 / 0.6); font: 700 0.76rem/1 ui-monospace, Consolas, monospace; transition: background 140ms ease, transform 140ms ease; }
+.release-history-toggle:hover { background: #75421d; transform: translateY(-1px); }
+.release-history-toggle span { display: grid; place-items: center; width: 14px; height: 14px; border: 1px solid currentColor; color: var(--amber-hot); font-size: 0.9rem; }
+
+.release-history { position: relative; margin: -8px 0 26px auto; padding: clamp(19px, 3vw, 30px); border: 1px solid #b99058; color: #f3e3c3; background: linear-gradient(118deg, #2d1a10, #4b2917 56%, #24150e); box-shadow: var(--shadow); }
+.release-history::before { content: '更新'; position: absolute; top: 16px; right: clamp(18px, 3vw, 30px); color: rgb(255 224 159 / 0.11); font: 800 clamp(3rem, 8vw, 6rem)/0.8 Georgia, 'Noto Serif TC', serif; pointer-events: none; }
+.release-history header { position: relative; display: flex; justify-content: space-between; gap: 24px; align-items: end; padding-bottom: 17px; border-bottom: 1px solid rgb(242 206 141 / 0.38); }
+.release-history h2 { margin: 0; color: #ffe0a0; }
+.release-history header > p { max-width: 24rem; margin: 0; color: #d4bd96; line-height: 1.55; text-align: right; }
+.release-history ol { position: relative; display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.release-entry { display: grid; grid-template-columns: minmax(105px, 0.32fr) minmax(0, 1fr); gap: 22px; padding: 18px 0; border-bottom: 1px solid rgb(242 206 141 / 0.18); }
+.release-entry:last-child { padding-bottom: 0; border-bottom: 0; }
+.release-marker { display: grid; align-content: start; gap: 5px; }
+.release-marker strong { color: var(--amber-hot); font: 800 1.03rem/1 ui-monospace, Consolas, monospace; }
+.release-marker span { color: #c5aa7e; font: 700 0.7rem/1 ui-monospace, Consolas, monospace; }
+.release-entry h3 { margin: 0 0 8px; color: #fff0cf; font-size: 1.04rem; }
+.release-entry ul { display: grid; gap: 4px; margin: 0; padding-left: 1.1rem; color: #dfc69e; line-height: 1.55; }
 
 .paper-panel { color: var(--ink); background: var(--paper); border: 1px solid rgb(255 255 255 / 0.45); box-shadow: var(--shadow); }
 .setup { padding: clamp(20px, 4vw, 42px); position: relative; overflow: clip; }
@@ -221,6 +243,13 @@ h3 { margin-bottom: 8px; font-size: 1rem; }
 @media (max-width: 760px) {
   .app-shell { width: min(100% - 22px, 680px); padding-top: 18px; }
   .masthead { align-items: start; flex-direction: column; margin-bottom: 18px; }
+  .masthead-meta { width: 100%; justify-items: start; }
+  .version-row { justify-content: start; }
+  .release-history { margin: 0 0 20px; padding: 20px 16px; }
+  .release-history header { align-items: start; flex-direction: column; gap: 8px; }
+  .release-history header > p { text-align: left; }
+  .release-entry { grid-template-columns: 1fr; gap: 8px; padding: 15px 0; }
+  .release-marker { display: flex; gap: 9px; align-items: baseline; }
   .setup { padding: 22px 18px; }
   .setup-intro { grid-template-columns: 1fr; gap: 12px; padding-bottom: 19px; }
   .setup-intro .setup-copy { padding: 10px 0 0 13px; }
@@ -589,6 +618,33 @@ function createDefaultPracticeConfig() {
 
 const app = document.querySelector('[data-app-root]');
 const allTemplateIds = CHORD_TEMPLATES.map((template) => template.id);
+const APP_VERSION = 'v1.3.0';
+const RELEASE_HISTORY = [
+  {
+    version: 'v1.3.0',
+    date: '2026.08.28',
+    title: '看懂和弦怎麼堆疊',
+    changes: ['答題後加入組成規律說明', '以相鄰兩音標示全音與半音距離', '延伸音另標示為上方八度'],
+  },
+  {
+    version: 'v1.2.0',
+    date: '2026.08.15',
+    title: '更適合從基礎開始',
+    changes: ['預設為看和弦填組成音與自然根音', '答題後指板只顯示本題組成音', '根音以粗體與外框特別標示'],
+  },
+  {
+    version: 'v1.1.0',
+    date: '2026.08.15',
+    title: '答題與複習更順手',
+    changes: ['加入手機音名按鍵與鍵盤輸入規則', '可設定答題數、查看成績與錯題', '答題後按 Enter 可進入下一題'],
+  },
+  {
+    version: 'v1.0.0',
+    date: '2026.08.14',
+    title: '和弦組成音練習器公開',
+    changes: ['建立基本、延伸與變化和弦題庫', '提供正向、反向與混合練習', '支援限時、嚴格音名拼寫與吉他指板'],
+  },
+];
 const typeGroupSpecs = [
   {
     section: '基本和弦',
@@ -631,6 +687,7 @@ const state = {
   feedback: null,
   fretboardOpen: false,
   setupFretboardOpen: false,
+  releaseHistoryOpen: false,
   timerId: null,
   deadline: null,
   setupError: '',
@@ -651,12 +708,18 @@ function chordGroups() {
 }
 
 function renderShell(content) {
+  const homeMeta = state.view === 'setup' ? `<div class="masthead-meta"><p class="muted">純理論練習 · 不保存紀錄</p><div class="version-row"><span class="version-status">目前版本 <b>${APP_VERSION}</b></span><button class="release-history-toggle" type="button" data-action="toggle-release-history" aria-expanded="${state.releaseHistoryOpen}" aria-controls="release-history-panel">版本更新歷程 <span aria-hidden="true">${state.releaseHistoryOpen ? '−' : '+'}</span></button></div></div>` : '<p class="muted">純理論練習 · 不保存紀錄</p>';
   return `<div class="app-shell">
     <header class="masthead">
       <div><p class="eyebrow">HARMONY WORKBENCH / 01</p><h1>和弦組成音<br>練習器</h1><p class="subhead">用正確拼寫，拆開每一個和弦。</p></div>
-      <p class="muted">純理論練習 · 不保存紀錄</p>
-    </header>${content}
+      ${homeMeta}
+    </header>${state.view === 'setup' && state.releaseHistoryOpen ? renderReleaseHistory() : ''}${content}
   </div>`;
+}
+
+function renderReleaseHistory() {
+  const entries = RELEASE_HISTORY.map((release) => `<li class="release-entry"><div class="release-marker"><strong>${release.version}</strong><span>${release.date}</span></div><div><h3>${release.title}</h3><ul>${release.changes.map((change) => `<li>${change}</li>`).join('')}</ul></div></li>`).join('');
+  return `<section class="release-history" id="release-history-panel" aria-labelledby="release-history-title"><header><div><p class="eyebrow">VERSION LOG</p><h2 id="release-history-title">版本更新歷程</h2></div><p>功能會持續整理成好理解的練習工具。</p></header><ol>${entries}</ol></section>`;
 }
 
 function renderSetup() {
@@ -967,17 +1030,19 @@ app.addEventListener('click', (event) => {
   if (action === 'select-all') { state.config.templateIds = [...allTemplateIds]; render(); }
   if (action === 'select-basic') { state.config.templateIds = [...BASIC_TEMPLATE_IDS]; render(); }
   if (action === 'select-none') { state.config.templateIds = []; render(); }
+  if (action === 'toggle-release-history') { state.releaseHistoryOpen = !state.releaseHistoryOpen; render(); }
   if (action === 'start') {
     state.config.templateIds = selectedTemplateIds();
     state.config.rootAccidentals = selectedRootAccidentals();
     if (!state.config.templateIds.length) { state.setupError = '請至少選擇一種和弦類型。'; render(); return; }
     if (!state.config.rootAccidentals.length) { state.setupError = '請至少選擇一種根音記號。'; render(); return; }
     state.setupError = '';
+    state.releaseHistoryOpen = false;
     state.view = 'practice';
     state.session = createPracticeSession(state.config.questionCount);
     issueQuestion();
   }
-  if (action === 'settings') { clearTimer(); state.view = 'setup'; state.question = null; render(); }
+  if (action === 'settings') { clearTimer(); state.releaseHistoryOpen = false; state.view = 'setup'; state.question = null; render(); }
   if (action === 'submit') finishQuestion(false);
   if (action === 'next' || action === 'summary') advanceFromFeedback();
   if (action === 'restart') { state.view = 'practice'; state.session = createPracticeSession(state.config.questionCount); state.previousKey = ''; issueQuestion(); }
