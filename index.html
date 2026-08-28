@@ -161,6 +161,16 @@ h3 { margin-bottom: 8px; font-size: 1rem; }
 .formula-strip span { color: #765534; font-size: 0.78rem; font-weight: 700; }
 .formula-strip strong { font: 800 1.02rem/1.2 ui-monospace, Consolas, monospace; }
 .formula-strip em { color: #765534; font-size: 0.82rem; font-style: normal; }
+.construction-rule { margin: 0 0 17px; padding: 12px; border: 1px solid #b8a47e; color: #4b321c; background: rgb(255 250 240 / 0.6); }
+.construction-rule > div { display: flex; flex-wrap: wrap; gap: 7px 11px; align-items: baseline; }
+.construction-rule > div > span { color: #765534; font-size: 0.78rem; font-weight: 700; }
+.construction-rule > div > p { margin: 0; font-size: 0.88rem; }
+.construction-rule ol { display: grid; gap: 5px; margin: 10px 0; padding: 0; list-style: none; }
+.construction-rule li { display: flex; flex-wrap: wrap; gap: 5px 8px; align-items: baseline; font-size: 0.9rem; }
+.construction-rule li strong { font-family: ui-monospace, Consolas, monospace; }
+.construction-rule li span { color: #765534; }
+.construction-rule li em { padding: 2px 5px; color: #735126; background: #ead6af; font-size: 0.72rem; font-style: normal; font-weight: 700; }
+.construction-roles { margin: 0; padding-top: 9px; border-top: 1px dashed #b8a47e; color: #765534; font-size: 0.82rem; line-height: 1.55; }
 .feedback-actions { display: flex; flex-wrap: wrap; gap: 9px; }
 
 .summary-panel { padding: clamp(22px, 5vw, 48px); }
@@ -327,6 +337,18 @@ const DEGREE_SPECS = {
   9: [14, 8], 11: [17, 10], 13: [21, 12],
 };
 
+const DEGREE_LABELS = {
+  1: '根音', 2: '大二度', b3: '小三度', 3: '大三度', 4: '完全四度',
+  b5: '減五度', 5: '完全五度', '#5': '增五度', 6: '大六度',
+  bb7: '減七度', b7: '小七度', 7: '大七度',
+  b9: '小九度', 9: '大九度', '#9': '增九度', 11: '完全十一度', 13: '大十三度',
+};
+
+const INTERVAL_LABELS = {
+  1: '小二度', 2: '大二度', 3: '小三度', 4: '大三度', 5: '完全四度', 6: '增四度／減五度',
+  7: '完全五度', 8: '小六度', 9: '大六度', 10: '小七度', 11: '大七度', 12: '完全八度',
+};
+
 const ROOTS = LETTERS.flatMap((letter) => [letter, `${letter}#`, `${letter}b`]);
 
 function rootNamesForAccidentals(accidentals = ['natural', 'sharp', 'flat']) {
@@ -390,6 +412,35 @@ function buildChord(root, templateId) {
     symbol: `${root}${SYMBOLS[templateId]}`,
     tones: template.degrees.map((degree) => spellTone(root, degree)),
   };
+}
+
+function wholeAndHalfDistance(semitones) {
+  const wholeTones = Math.floor(semitones / 2);
+  return semitones % 2
+    ? wholeTones ? `${wholeTones} 全音＋1 半音` : '1 半音'
+    : `${wholeTones} 全音`;
+}
+
+function explainChordStack(chord) {
+  const roles = chord.tones.map((tone) => {
+    const spec = degreeSpec(tone.degree);
+    return {
+      degree: tone.degree,
+      label: DEGREE_LABELS[tone.degree] ?? tone.degree,
+      aboveRootOctave: spec.semitones >= 12,
+    };
+  });
+  const steps = chord.tones.slice(1).map((tone, index) => {
+    const previousTone = chord.tones[index];
+    const semitones = degreeSpec(tone.degree).semitones - degreeSpec(previousTone.degree).semitones;
+    return {
+      from: previousTone.name,
+      to: tone.name,
+      interval: INTERVAL_LABELS[semitones] ?? `${semitones} 半音`,
+      distance: wholeAndHalfDistance(semitones),
+    };
+  });
+  return { steps, roles };
 }
 
 function gradeNotes(expected, actual) {
@@ -723,6 +774,16 @@ function renderFormulaStrip(question) {
   return `<div class="formula-strip"><span>和弦公式</span><strong>${escapeHtml(formula)}</strong><em>${escapeHtml(question.template.label)}</em></div>`;
 }
 
+function renderConstructionRule(question) {
+  const explanation = explainChordStack(question);
+  const roles = explanation.roles.map(({ degree, label, aboveRootOctave }) => `${displayNotation(degree)} ${label}${aboveRootOctave ? '（上方八度）' : ''}`).join(' · ');
+  const steps = explanation.steps.map(({ from, to, interval, distance }, index) => {
+    const upperOctave = explanation.roles[index + 1].aboveRootOctave ? '<em>上方八度</em>' : '';
+    return `<li><strong>${escapeHtml(from)} → ${escapeHtml(to)}</strong><span>${escapeHtml(interval)}（${escapeHtml(distance)}）</span>${upperOctave}</li>`;
+  }).join('');
+  return `<section class="construction-rule"><div><span>組成規律</span><p>由左到右，從前一音往上堆疊。</p></div><ol>${steps}</ol><p class="construction-roles">公式讀法：${escapeHtml(roles)}</p></section>`;
+}
+
 function renderFeedback() {
   if (!state.feedback) return '';
   const { correct, timedOut } = state.feedback;
@@ -737,7 +798,7 @@ function renderFeedback() {
   const nextButton = nextActionAfterFeedback(state.session) === 'summary'
     ? '<button class="primary-button" type="button" data-action="summary">查看結算（Enter）→</button>'
     : '<button class="primary-button" type="button" data-action="next">下一題（Enter）→</button>';
-  return `<section class="feedback ${correct ? '' : 'wrong'}" aria-live="polite"><p class="feedback-title">${timedOut ? '時間到。' : correct ? '正確。' : '再看一次正確拼寫。'}</p>${details}${renderFormulaStrip(state.question)}<div class="feedback-actions"><button class="secondary-button" type="button" data-action="toggle-fretboard">${state.fretboardOpen ? '收合吉他指板' : '顯示吉他指板'}</button>${nextButton}</div></section>`;
+  return `<section class="feedback ${correct ? '' : 'wrong'}" aria-live="polite"><p class="feedback-title">${timedOut ? '時間到。' : correct ? '正確。' : '再看一次正確拼寫。'}</p>${details}${renderFormulaStrip(state.question)}${renderConstructionRule(state.question)}<div class="feedback-actions"><button class="secondary-button" type="button" data-action="toggle-fretboard">${state.fretboardOpen ? '收合吉他指板' : '顯示吉他指板'}</button>${nextButton}</div></section>`;
 }
 
 function renderFretboardPanel(chordNotes, heading, detail) {
