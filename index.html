@@ -216,6 +216,8 @@ h3 { margin-bottom: 8px; font-size: 1rem; }
 .mistake-card p { margin: 0; color: #6a4b2d; }
 .mistake-detail { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 4px 0; font: 700 0.92rem/1.45 ui-monospace, Consolas, monospace; }
 .mistake-detail span { color: #87572b; font: 700 0.74rem/1.6 Georgia, 'Noto Serif TC', 'PMingLiU', serif; }
+.mistake-card .construction-rule { margin: 14px 0 0; }
+.mistake-card .construction-roles { color: #765534; }
 .no-mistakes { margin: 0; padding: 21px 0; color: #376a3d; font-weight: 700; }
 .summary-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 9px; margin-top: 24px; }
 
@@ -618,8 +620,14 @@ function createDefaultPracticeConfig() {
 
 const app = document.querySelector('[data-app-root]');
 const allTemplateIds = CHORD_TEMPLATES.map((template) => template.id);
-const APP_VERSION = 'v1.3.0';
+const APP_VERSION = 'v1.3.1';
 const RELEASE_HISTORY = [
+  {
+    version: 'v1.3.1',
+    date: '2026.08.28',
+    title: '結算錯題也能複習',
+    changes: ['每張錯題卡加入組成規律', '保留相鄰音程的全音與半音說明', '延伸音持續標示為上方八度'],
+  },
   {
     version: 'v1.3.0',
     date: '2026.08.28',
@@ -847,6 +855,12 @@ function renderConstructionRule(question) {
   return `<section class="construction-rule"><div><span>組成規律</span><p>由左到右，從前一音往上堆疊。</p></div><ol>${steps}</ol><p class="construction-roles">公式讀法：${escapeHtml(roles)}</p></section>`;
 }
 
+function renderMistakeConstructionRule(mistake) {
+  return renderConstructionRule({
+    tones: mistake.tones.map((name, index) => ({ name, degree: mistake.formula[index] })),
+  });
+}
+
 function renderFeedback() {
   if (!state.feedback) return '';
   const { correct, timedOut } = state.feedback;
@@ -882,7 +896,7 @@ function renderFretboard() {
 
 function renderSummary() {
   const score = sessionScore(state.session);
-  const mistakes = state.session.mistakes.map((mistake, index) => `<article class="mistake-card"><div><p class="mistake-index">錯題 ${index + 1}</p><h3>${escapeHtml(displayNotation(mistake.symbol))}</h3><p>${escapeHtml(mistake.label)}</p></div><div><p class="mistake-detail"><span>公式</span>${escapeHtml(mistake.formula.map(displayNotation).join(' · '))}</p><p class="mistake-detail"><span>組成音</span>${escapeHtml(mistake.tones.map(displayNotation).join(' · '))}</p></div></article>`).join('');
+  const mistakes = state.session.mistakes.map((mistake, index) => `<article class="mistake-card"><div><p class="mistake-index">錯題 ${index + 1}</p><h3>${escapeHtml(displayNotation(mistake.symbol))}</h3><p>${escapeHtml(mistake.label)}</p></div><div><p class="mistake-detail"><span>公式</span>${escapeHtml(mistake.formula.map(displayNotation).join(' · '))}</p><p class="mistake-detail"><span>組成音</span>${escapeHtml(mistake.tones.map(displayNotation).join(' · '))}</p>${renderMistakeConstructionRule(mistake)}</div></article>`).join('');
   return renderShell(`<section class="paper-panel summary-panel">
     <header class="summary-heading"><p class="eyebrow" style="color:#7a5126">SESSION COMPLETE</p><h2>本次成績</h2><p>共完成 ${state.session.total} 題，以下保留這次練習的錯題。</p></header>
     <section class="scoreboard" aria-label="本次成績"><div class="accuracy-score"><strong>${score.accuracy}%</strong><span>正確率</span></div><div class="score-count"><span>答對 <b>${score.correct}</b> 題</span><span>答錯 <b>${score.wrong}</b> 題</span></div></section>
